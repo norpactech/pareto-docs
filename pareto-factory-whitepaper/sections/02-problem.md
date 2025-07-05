@@ -1,6 +1,4 @@
-# 02 – The Problem with CurrThis inconsistency hinders scalability and makes automated tooling less effective. Teams eventually accumulate **technical debt** simply from the act of building things manually, even when they "follow the rules."
-
-## Tooling Fatigue and Cognitive Overloadoftware Development Practices
+# 02 – The Problem with Current Software Development Practices
 
 Having spent much of my career developing software as a consultant, I’ve consistently found myself working on projects where a significant portion of the effort is needlessly redundant. Typically, architects like myself will define a functional framework and present it to development teams for implementation.
 
