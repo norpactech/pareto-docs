@@ -1,4 +1,4 @@
-# 06 – The Role of Automation: Handling the Predictable 80%
+# 05 – The Role of Automation: Handling the Predictable 80%
 
 While human developers focus on the creative and strategic aspects of software development, automation handles the **predictable majority** of development tasks with speed, consistency, and reliability. The Pareto Factory's automation engine transforms metadata definitions into production-quality code across multiple application layers, eliminating the repetitive work that traditionally consumes the bulk of development time.
 
@@ -6,292 +6,230 @@ This is not simple code generation or templating. It's a **comprehensive develop
 
 ## What Automation Handles
 
+**The Build/Generation Process**
+
+In its current state, a Java backend process uses the Pareto Factory's API to request "Project Components" and download them into specified subdirectories as instructed by the build and configuration in the Project Component. This is the **Direct generated code within an application** methodology. For developers and/or pipelines working on Angular applications, only the Angular components need to be requested. Alternatively, all components can be requested for full-stack developers. The build process is designed to be flexible so all needs can be met. 
+
+In its future state, Pareto Factory will work in conjunction with GitHub's build/pipeline process to create artifacts in various formats like Maven JARs or npm packages so developers can import libraries directly into the application build without directly importing code. This methodology is much simpler from a developer's perspective and is referred to as the **Libraries that developers use within an application** methodology (for lack of a better term).
+
+The build process is flexible enough to support the needs of the project. Setting up build processes for development teams is a hybrid of both automation (where it makes sense) and human activities (where required).
+
 ### **Database Layer Generation**
 The framework automatically creates complete database schemas from metadata definitions:
 
 **Table Creation**
 ```sql
--- Generated from metadata for Customer entity
-CREATE TABLE customers (
-    customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    created_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE pareto.plugin (
+  id                               UUID             NOT NULL    DEFAULT GEN_RANDOM_UUID(), 
+  id_context                       UUID             NOT NULL, 
+  name                             VARCHAR(32)      NOT NULL    CHECK (name ~ '^[A-Za-z0-9_][A-Za-z0-9\s\-,\.&''()*_:]{0,30}[A-Za-z0-9_]$'), 
+  description                      TEXT             NULL, 
+  plugin_service                   TEXT             NOT NULL    CHECK (plugin_service ~ '^[a-z][a-zA-Z0-9_]*$'), 
+  created_at                       TIMESTAMP        NOT NULL    DEFAULT CURRENT_TIMESTAMP, 
+  created_by                       VARCHAR(32)      NOT NULL, 
+  updated_at                       TIMESTAMP        NOT NULL    DEFAULT CURRENT_TIMESTAMP, 
+  updated_by                       VARCHAR(32)      NOT NULL, 
+  is_active                        BOOLEAN          NOT NULL    DEFAULT TRUE
 );
 
--- Automatically generated indexes
-CREATE INDEX idx_customers_email ON customers(email);
-CREATE INDEX idx_customers_company_name ON customers(company_name);
-```
+ALTER TABLE pareto.plugin ADD PRIMARY KEY (id);
 
+CREATE UNIQUE INDEX plugin_alt_key
+    ON pareto.plugin(id_context, LOWER(name));
+
+ALTER TABLE pareto.plugin
+  ADD CONSTRAINT plugin_id_context
+  FOREIGN KEY (id_context)
+  REFERENCES pareto.context(id)
+  ON DELETE CASCADE;
+
+CREATE TRIGGER update_at
+  BEFORE UPDATE ON pareto.plugin 
+    FOR EACH ROW
+      EXECUTE FUNCTION update_at();
+```
 **Stored Procedures**
+
+This is where Pareto really shines. Notice that the following does much more than simply persist a record. It performs comprehensive validation checks and logs updates. Manually handling these tasks would be daunting when considering that each table can have create, update, delete, and soft-delete stored procedures. 
+
+*Note: Handling persistence using stored procedures is NOT A REQUIREMENT; it was simply a design decision based on the **Data Locality Principle**, which establishes that it's a best practice to process data close to its source. Using stored procedures ensures validations are checked and reported back to the caller.*
+
 ```sql
--- Generated CRUD operations with consistent error handling
-CREATE OR REPLACE FUNCTION create_customer(
-    p_company_name VARCHAR(100),
-    p_email VARCHAR(255),
-    p_phone VARCHAR(20) DEFAULT NULL
-) RETURNS UUID AS $$
+CREATE FUNCTION pareto.i_plugin(
+  IN p_id_context UUID, 
+  IN p_name VARCHAR, 
+  IN p_description TEXT, 
+  IN p_plugin_service TEXT, 
+  IN p_created_by VARCHAR
+)
+RETURNS pg_resp
+AS $$
 DECLARE
-    v_customer_id UUID;
+
+  c_service_name TEXT := 'i_plugin';
+
+  v_metadata     JSONB := '{}'::JSONB;
+  v_errors       JSONB := '[]'::JSONB;
+  v_val_resp     pareto.pg_val;  
+  v_response     pareto.pg_resp;
+  v_updated_at   TIMESTAMP;
+  
+  -- Primary Key Field(s)
+  v_id uuid := NULL;
+
 BEGIN
-    -- Validation and business rule enforcement
-    IF p_company_name IS NULL OR LENGTH(TRIM(p_company_name)) = 0 THEN
-        RAISE EXCEPTION 'Company name is required';
-    END IF;
-    
-    -- Insert with proper error handling
-    INSERT INTO customers (company_name, email, phone)
-    VALUES (p_company_name, p_email, p_phone)
-    RETURNING customer_id INTO v_customer_id;
-    
-    RETURN v_customer_id;
-EXCEPTION
-    WHEN unique_violation THEN
-        RAISE EXCEPTION 'Email address already exists';
+
+  -- ------------------------------------------------------
+  -- Metadata
+  -- ------------------------------------------------------
+
+  v_metadata := jsonb_build_object(
+    'id_context', p_id_context, 
+    'name', p_name, 
+    'description', p_description, 
+    'plugin_service', p_plugin_service, 
+    'created_by', p_created_by
+  );
+  
+  -- ------------------------------------------------------
+  -- Validations
+  -- ------------------------------------------------------
+  
+  v_val_resp := is_name('name', p_name);
+  IF NOT v_val_resp.passed THEN
+    v_errors := v_errors || jsonb_build_object('type', 'validation', 'field', v_val_resp.field, 'message', v_val_resp.message);
+  END IF;
+
+  v_val_resp := is_service('plugin_service', p_plugin_service);
+  IF NOT v_val_resp.passed THEN
+    v_errors := v_errors || jsonb_build_object('type', 'validation', 'field', v_val_resp.field, 'message', v_val_resp.message);
+  END IF;
+
+  IF jsonb_array_length(v_errors) > 0 THEN
+    v_response := (
+      'ERROR', 
+      NULL, 
+      v_errors, 
+      '23514', 
+      'A CHECK constraint was violated due to incorrect input', 
+      'Ensure all fields in the ''errors'' array are correctly formatted', 
+      'The provided data did not pass validation checks'
+    );
+    CALL pareto.i_logs(v_response.status, v_response.message, c_service_name, p_created_by, v_metadata);
+    RETURN v_response;
+  END IF;
+  
+  -- ------------------------------------------------------
+  -- Persist
+  -- ------------------------------------------------------
+ 
+  INSERT INTO pareto.plugin (
+    id_context, 
+    name, 
+    description, 
+    plugin_service, 
+    created_by,
+    updated_by
+  )
+  VALUES (
+    p_id_context, 
+    p_name, 
+    p_description, 
+    p_plugin_service, 
+    p_created_by,
+    p_created_by
+  )
+  RETURNING id, updated_at INTO v_id, v_updated_at;
+
+  v_response := (
+    'OK',
+    jsonb_build_object('id', v_id, 'updated_at', v_updated_at), 
+    NULL, 
+    '00000',
+    'Insert was successful', 
+    NULL, 
+    NULL
+  );
+  RETURN v_response;
+
+  -- ------------------------------------------------------
+  -- Exceptions
+  -- ------------------------------------------------------
+  
+  EXCEPTION
+    WHEN UNIQUE_VIOLATION THEN
+      v_response := (
+        'ERROR', 
+        NULL, 
+        jsonb_build_object('type', 'database', 'message', 'A UNIQUE constraint was violated due to duplicate data'), 
+        '23514', 
+        'A UNIQUE constraint was violated due to duplicate data', 
+        'A record already exists in the plugin table', 
+        'Check the provided data and try again'
+      );
+      CALL pareto.i_logs(v_response.status, v_response.message, c_service_name, p_created_by, v_metadata);
+      RETURN v_response;
+  
     WHEN OTHERS THEN
-        RAISE EXCEPTION 'Failed to create customer: %', SQLERRM;
+      v_response := (
+        'ERROR', 
+        NULL, 
+        jsonb_build_object('type', 'database', 'message', SQLERRM), 
+        SQLSTATE, 
+        'An unexpected error occurred', 
+        'Check database logs for more details', 
+        SQLERRM
+      );
+      CALL pareto.i_logs(v_response.status, v_response.message, c_service_name, p_created_by, v_metadata);
+      RETURN v_response;
+  
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-### **API Layer Generation**
-Complete REST API implementations with consistent patterns:
+### **Current Generation**
 
-**Controller Classes**
-```java
-@RestController
-@RequestMapping("/api/customers")
-@Validated
-public class CustomerController {
-    
-    private final CustomerService customerService;
-    
-    @PostMapping
-    public ResponseEntity<CustomerResponse> createCustomer(
-            @Valid @RequestBody CreateCustomerRequest request) {
-        
-        Customer customer = customerService.createCustomer(request);
-        CustomerResponse response = CustomerMapper.toResponse(customer);
-        
-        return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(response);
-    }
-    
-    @GetMapping("/{id}")
-    public ResponseEntity<CustomerResponse> getCustomer(
-            @PathVariable UUID id) {
-        
-        Customer customer = customerService.getCustomer(id);
-        CustomerResponse response = CustomerMapper.toResponse(customer);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    // Additional CRUD operations...
-}
-```
+There are additional layers to modern applications including the user interface and middle-tier API. Providing all the code for all layers would simply be too overwhelming for this whitepaper. In summary, the following application components are generated **as of today**:
 
-**Service Layer with Business Logic**
-```java
-@Service
-@Transactional
-public class CustomerService {
-    
-    private final CustomerRepository customerRepository;
-    private final AuditService auditService;
-    
-    public Customer createCustomer(CreateCustomerRequest request) {
-        // Generated validation
-        validateCreateCustomerRequest(request);
-        
-        // Entity creation with audit trail
-        Customer customer = Customer.builder()
-            .companyName(request.getCompanyName())
-            .email(request.getEmail())
-            .phone(request.getPhone())
-            .build();
-        
-        Customer savedCustomer = customerRepository.save(customer);
-        
-        // Automatic audit logging
-        auditService.logCreation("Customer", savedCustomer.getId());
-        
-        return savedCustomer;
-    }
-    
-    // Generated validation methods
-    private void validateCreateCustomerRequest(CreateCustomerRequest request) {
-        if (StringUtils.isBlank(request.getCompanyName())) {
-            throw new ValidationException("Company name is required");
-        }
-        if (customerRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email address already exists");
-        }
-    }
-}
-```
+**PostgreSQL**
+- Create Tables DDL
+- Create Validation Stored Procedures
+- Insert Functions
+- Update Functions
+- Delete Functions
+- Active/Inactive Functions
 
-### **Frontend Code Generation**
-TypeScript models and Angular services that integrate seamlessly with the backend:
+**MS SQL Server Scripting**
+- Create Tables
+- Create Validations
+- Create Insert Functions
+- Create Update Functions
+- Create Delete Functions
+- Create Active/Inactive (soft-delete) Functions
 
-**TypeScript Models**
-```typescript
-export interface Customer {
-  customerId: string;
-  companyName: string;
-  email: string;
-  phone?: string;
-  createdDate: Date;
-  updatedDate: Date;
-}
+**Java/Spring Boot**
+- Java Model Classes
+- Controller Classes
+- DTO (Data Transfer Objects) Classes
+- Post API Requests
+- Put API Requests
+- Delete API
+- Active/Inactive (soft-delete) API
 
-export interface CreateCustomerRequest {
-  companyName: string;
-  email: string;
-  phone?: string;
-}
+**TypeScript**
+- Model Classes
+- Service Classes
+- DTO Classes
 
-export interface CustomerResponse extends Customer {
-  // Additional response-specific fields
-}
-```
+**What's missing?** 
 
-**Angular Services**
-```typescript
-@Injectable({
-  providedIn: 'root'
-})
-export class CustomerService {
-  
-  private readonly baseUrl = '/api/customers';
-  
-  constructor(private http: HttpClient) {}
-  
-  createCustomer(request: CreateCustomerRequest): Observable<CustomerResponse> {
-    return this.http.post<CustomerResponse>(this.baseUrl, request)
-      .pipe(
-        catchError(this.handleError<CustomerResponse>('createCustomer'))
-      );
-  }
-  
-  getCustomer(id: string): Observable<CustomerResponse> {
-    return this.http.get<CustomerResponse>(`${this.baseUrl}/${id}`)
-      .pipe(
-        catchError(this.handleError<CustomerResponse>('getCustomer'))
-      );
-  }
-  
-  // Consistent error handling across all generated services
-  private handleError<T>(operation = 'operation', result?: T) {
-    return (error: any): Observable<T> => {
-      console.error(`${operation} failed: ${error.message}`);
-      // Additional error handling logic
-      return of(result as T);
-    };
-  }
-}
-```
+Angular forms and table search pages are not being generated as of this writing. This is mainly due to the fact that GitHub Copilot is capable of looking at the model and service classes and performing the generation using that medium. In the future, the patterns for tables and forms will be further reviewed to determine if developing a plugin for generation is feasible.
 
-**Reactive Forms**
-```typescript
-@Component({
-  selector: 'app-customer-form',
-  template: `
-    <form [formGroup]="customerForm" (ngSubmit)="onSubmit()">
-      <mat-form-field>
-        <mat-label>Company Name</mat-label>
-        <input matInput formControlName="companyName" required>
-        <mat-error *ngIf="customerForm.get('companyName')?.errors?.['required']">
-          Company name is required
-        </mat-error>
-      </mat-form-field>
-      
-      <mat-form-field>
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" required>
-        <mat-error *ngIf="customerForm.get('email')?.errors?.['email']">
-          Please enter a valid email address
-        </mat-error>
-      </mat-form-field>
-      
-      <button mat-raised-button type="submit" [disabled]="customerForm.invalid">
-        Create Customer
-      </button>
-    </form>
-  `
-})
-export class CustomerFormComponent {
-  
-  customerForm = this.fb.group({
-    companyName: ['', [Validators.required, Validators.maxLength(100)]],
-    email: ['', [Validators.required, Validators.email]],
-    phone: ['', [Validators.pattern(/^\+?[\d\s\-\(\)]+$/)]]
-  });
-  
-  constructor(
-    private fb: FormBuilder,
-    private customerService: CustomerService
-  ) {}
-  
-  onSubmit(): void {
-    if (this.customerForm.valid) {
-      const request: CreateCustomerRequest = this.customerForm.value;
-      this.customerService.createCustomer(request).subscribe({
-        next: (customer) => {
-          // Success handling
-        },
-        error: (error) => {
-          // Error handling
-        }
-      });
-    }
-  }
-}
-```
+Security is partially managed in the Pareto Factory. Generated code ensures that items like JWTs (JSON Web Tokens) are propagated throughout the API, for example. Items like Route Guards and User Roles in the Angular applications are managed by humans. As in Compiere, however, the Pareto Factory can extend the metadata to include functions/APIs and user roles. Other functions/capabilities can also be included.  
 
-## Code Generation Patterns
+**Cross-Platform Development**
 
-### **Template-Based Generation**
-The Pareto Factory uses sophisticated templating that goes beyond simple string replacement:
-
-- **Conditional generation** based on metadata properties
-- **Loop constructs** for collections and relationships
-- **Inheritance patterns** for shared functionality
-- **Composition strategies** for complex object hierarchies
-
-### **Plugin Architecture**
-The generation system is designed for extensibility:
-
-```java
-public interface CodeGenerator {
-    boolean supports(EntityMetadata metadata, GenerationContext context);
-    GenerationResult generate(EntityMetadata metadata, GenerationContext context);
-    List<String> getDependencies();
-}
-
-@Component
-public class SpringBootControllerGenerator implements CodeGenerator {
-    
-    @Override
-    public boolean supports(EntityMetadata metadata, GenerationContext context) {
-        return context.getTargetFramework().equals("spring-boot") 
-            && context.getLayer().equals("controller");
-    }
-    
-    @Override
-    public GenerationResult generate(EntityMetadata metadata, GenerationContext context) {
-        // Generate Spring Boot controller code
-        return GenerationResult.builder()
-            .fileName(metadata.getName() + "Controller.java")
-            .content(generateControllerContent(metadata))
-            .build();
-    }
-}
-```
+The Pareto Factory maintains a plugin for MS DOS scripts that generate the database. The scripts are designed to stop at the point of any error so the error can be identified and corrected accordingly. Many developers (including myself) also use Linux-based systems. In order to support this, the only task needed is to create a set of generated bash (or other) shell scripts to perform this task elsewhere.
 
 ### **Version Control Integration**
 Generated code is designed to work seamlessly with modern development workflows:
@@ -300,6 +238,8 @@ Generated code is designed to work seamlessly with modern development workflows:
 - **Incremental updates** that preserve custom modifications
 - **Clear separation** between generated and custom code
 - **Automated testing** of generated components
+
+The file strategy is simple replacement. When generation is performed, ALL files are overwritten with either their previous version or new version. Files are removed when no longer generated. There are no updates in the sense that files are changed/versioned. That task is relegated to the git repository. If any merges need to be evaluated manually, GitHub (or your repository of choice) will present the manual merge in Pull Requests, and a human is required to make that change. 
 
 ## Quality Assurance Through Automation
 
@@ -316,58 +256,11 @@ Generated code incorporates enterprise-grade practices:
 
 - **Input validation** at multiple layers
 - **SQL injection prevention** through parameterized queries
-- **Cross-site scripting (XSS) protection** in web interfaces
 - **Audit trails** for all data modifications
 - **Performance optimization** through proper indexing and caching
 
 ### **Comprehensive Testing**
-The framework generates test suites alongside functional code:
-
-```java
-@ExtendWith(MockitoExtension.class)
-class CustomerServiceTest {
-    
-    @Mock
-    private CustomerRepository customerRepository;
-    
-    @Mock
-    private AuditService auditService;
-    
-    @InjectMocks
-    private CustomerService customerService;
-    
-    @Test
-    void createCustomer_ValidRequest_ReturnsCustomer() {
-        // Given
-        CreateCustomerRequest request = CreateCustomerRequest.builder()
-            .companyName("Test Company")
-            .email("test@example.com")
-            .build();
-        
-        Customer expectedCustomer = Customer.builder()
-            .customerId(UUID.randomUUID())
-            .companyName("Test Company")
-            .email("test@example.com")
-            .build();
-        
-        when(customerRepository.save(any(Customer.class)))
-            .thenReturn(expectedCustomer);
-        
-        // When
-        Customer result = customerService.createCustomer(request);
-        
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getCompanyName()).isEqualTo("Test Company");
-        verify(auditService).logCreation("Customer", result.getId());
-    }
-    
-    @Test
-    void createCustomer_DuplicateEmail_ThrowsException() {
-        // Test duplicate email handling
-    }
-}
-```
+A future enhancement is to generate test suites alongside functional code. Theoretically, the metadata should be capable of evaluating itself and generating useful integration and end-to-end tests that ensure the system is working as intended. The intent is to ensure that every stored procedure and API call is performed as intended with all validations in place. Looking further, the User Interface may also be included in tests. For now, however, this is a human-performed activity.
 
 ## Integration with Development Workflow
 
@@ -376,41 +269,10 @@ Generated code integrates smoothly with modern deployment practices:
 
 - **Build scripts** that compile and package generated components
 - **Database migration scripts** for schema changes
-- **Container configurations** for deployment
-- **Environment-specific configurations** for different deployment stages
 
-### **Monitoring and Observability**
-Automation includes operational concerns:
+The framework performs database script generation. It's anticipated that the pipelines will be human-developed for all CI/CD activities. 
 
-- **Health check endpoints** for each service
-- **Metrics collection** for performance monitoring
-- **Structured logging** for troubleshooting
-- **Distributed tracing** for complex request flows
-
-## The Automation Advantage
-
-### **Speed and Efficiency**
-What traditionally takes weeks of development can be generated in minutes:
-- **Complete CRUD applications** from metadata definitions
-- **API documentation** automatically synchronized with implementation
-- **Database schemas** with proper constraints and relationships
-- **User interfaces** with validation and error handling
-
-### **Reliability and Maintainability**
-Generated code is more reliable than hand-written code because:
-- **Patterns are proven** and tested across multiple projects
-- **Updates are systematic** rather than ad-hoc
-- **Bugs are fixed globally** when templates are improved
-- **Standards compliance** is automatic rather than manual
-
-### **Scalability**
-The approach scales to large, complex applications:
-- **Consistent architecture** across hundreds of entities
-- **Team productivity** that doesn't degrade with application size
-- **Knowledge sharing** through common patterns and approaches
-- **Onboarding efficiency** for new team members
-
----
+### **Summary**
 
 By handling the predictable 80% of development tasks, automation frees human developers to focus on the creative and strategic work that truly adds value. The result is software that is both more innovative and more reliable—combining the best of human creativity with the consistency and speed of automation.
 
