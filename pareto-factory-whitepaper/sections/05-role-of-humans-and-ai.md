@@ -1,6 +1,6 @@
-# 05 – The Role of Humans: Driving the Critical 20%
+# 05 – The Role of Humans and Artificial Intelligence: Driving the Critical 20%
 
-The Pareto Factory is not about replacing developers—it's about **amplifying their capabilities** by eliminating the mundane so they can focus on what truly matters. While automation handles the predictable 80% of development tasks, humans drive the critical 20% that requires creativity, judgment, and domain expertise.
+The Pareto Factory is **NOT** about replacing developers—it's about **amplifying their capabilities** by eliminating the mundane so they can focus on what truly matters. While automation handles the predictable 80% of development tasks, humans drive the critical 20% that requires creativity, judgment, and domain expertise.
 
 This division is not arbitrary. It reflects the fundamental truth that software development is both an **engineering discipline** and a **creative endeavor**. The engineering aspects—database schemas, API endpoints, form validations—follow established patterns that can be automated. The creative aspects—solving unique business problems, designing intuitive user experiences, optimizing complex algorithms—require human insight that no amount of automation can replace.
 
@@ -134,6 +134,21 @@ The Pareto Factory creates a **symbiotic relationship** between human developers
 This partnership allows teams to **scale their impact** without scaling their complexity. A small team of skilled developers can build and maintain applications that would traditionally require much larger teams, because they're focusing their expertise where it matters most.
 
 The result is not just faster development, but **better development**—software that is more consistent, more maintainable, and more closely aligned with actual business needs.
+
+## Working with Artificial Intelligence (AI)
+
+Before the Pareto Factory project was conceived, I put AI to the test. In doing so, I created scripts that called an AI API to request MySQL stored procedures. The metadata used contained about 20 data objects with a varying number of properties. What I found is primarily this:
+
+- **The results were inconsistent** - Database DDL and Stored Procedures varied in structure. 
+- **Code generation was very slow** - While I never logged the time involved, getting results was very slow—painfully slow. I was asking AI to think about each request and return code based on the input. 
+
+AI is not the tool of choice to generate vast amounts of code. It's asking too much and taking up too many resources. AI is meant to "think". Templating with metadata, on the other hand, is very quick and doesn't require much processing power. In fact, it only takes a matter of 2-3 seconds to generate itself! So, AI is simply not the right tool for the "code generation" job. 
+
+Where does AI fit within the Pareto Development process? I have found AI to be invaluable in performing research on various coding techniques and gaining insights. GitHub's Copilot has truly been a partner of sorts thus far. In fact, it assisted me in writing this whitepaper!
+
+A good example is in assisting with the Angular application. In instructing AI to evaluate Model, DTO, and Service classes, AI was able to generate search tables and forms for ALL of the forms and tables within the application. The technology is truly incredible and highly effective as a developer tool to assist in the development process. 
+
+As previously mentioned, however, there are limitations. I can instruct AI to perform certain UI tasks and it will do so very efficiently, but the human element is missing. For example, work on the user interface will be to circle back to make the application more human-friendly so the metadata will be better understood and manipulated—requiring a human to evaluate the big picture and present the system as a seamless experience to the user. 
 
 ---
 
