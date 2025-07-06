@@ -1,6 +1,6 @@
 # 06 – Case Study: F-35 ALIS System Reimagined
 
-**Disclaimer**: This case study is entirely fictional and theoretical. The author has no visibility into the actual F-35 ALIS (Autonomic Logistics Information System) beyond publicly available information. It should be noted that ALIS has since been replaced by ODIN (Operational Data Integrated Network). This example is used purely to illustrate how the Pareto Factory approach could address complex, multi-application enterprise systems.
+**Disclaimer**: This case study is entirely fictional and theoretical. The author has no visibility into the actual F-35 ODIN (Operational Data Integrated Network) beyond publicly available. This example is used purely to illustrate how the Pareto Factory approach could address complex, multi-application enterprise systems.
 
 *Note: Time savings and metrics are theoretical projections based on the Pareto Factory approach - no actual implementation or studies have been performed on the F-35 ALIS system.*
 
