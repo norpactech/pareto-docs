@@ -1,5 +1,8 @@
 # Personal Origins of a Hybrid Approach to Software Development
 
+**Copyright © 2025 Northern Pacific Technologies, LLC**  
+**Published: July 2025**
+
 **Intellectual Property Notice**: This whitepaper presents the Pareto Factory approach to metadata-driven software development. Through comprehensive analysis of existing frameworks, tools, and methodologies, AI-assisted research has confirmed that while individual components of metadata-driven development, code generation, and automation exist in various forms across the software industry, no known framework or approach encompasses the specific combination of principles, architecture, and methodology presented herein. The integrated approach of the Pareto Factory—combining centralized metadata repositories, plugin-based code generation, cross-platform consistency, and the specific 80/20 automation-human partnership model—represents a novel contribution to software development methodology. This work and the concepts contained within are the intellectual property of Scott Klakken, Owner/Operator of Northern Pacific Technologies, LLC and are protected under applicable copyright and intellectual property laws.
 
 ---
