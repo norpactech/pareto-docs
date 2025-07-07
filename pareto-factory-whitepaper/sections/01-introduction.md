@@ -2,7 +2,7 @@
 
 **Intellectual Property Notice**: This whitepaper presents the Pareto Factory approach to metadata-driven software development. Through comprehensive analysis of existing frameworks, tools, and methodologies, AI-assisted research has confirmed that while individual components of metadata-driven development, code generation, and automation exist in various forms across the software industry, no known framework or approach encompasses the specific combination of principles, architecture, and methodology presented herein. The integrated approach of the Pareto Factory—combining centralized metadata repositories, plugin-based code generation, cross-platform consistency, and the specific 80/20 automation-human partnership model—represents a novel contribution to software development methodology. This work and the concepts contained within are the intellectual property of Scott Klakken, Owner/Operator of Northern Pacific Technologies, LLC and are protected under applicable copyright and intellectual property laws.
 
-Scott Klakken can be reach at scott@norpactech.com for any comments/questions. 
+Scott Klakken can be reached at scott@norpactech.com for any comments/questions. 
 
 ---
 
@@ -11,7 +11,7 @@ That thought has lingered in my mind since early in my career. I've often wonder
 
 Consider how modern manufacturing operates: standardized components flow through automated assembly lines, while skilled workers focus on quality control, customization, and complex problem-solving. Raw materials are transformed into consistent, high-quality products through repeatable processes, yet human expertise guides critical decisions and handles exceptions. This proven model of **automation handling the predictable while humans drive the creative and strategic** has revolutionized every major industry—except software development, where we still largely hand-craft each application from the ground up.
 
-I encountered a remarkable open-source ERP system called **Compiere** in the early 2000s. Compiere, originally developed by Jorg Janke, was a pioneering ERP and CRM platform that took a radically different approach to software design. Unlike traditional systems hard-coded at every layer, Compiere, used a **metadata-driven architecture**—a concept that reshaped my view of how software could and should be built.
+I encountered a remarkable open-source ERP system called **Compiere** in the early 2000s. Compiere, originally developed by Jorg Janke, was a pioneering ERP and CRM platform that took a radically different approach to software design. Unlike traditional systems hard-coded at every layer, Compiere used a **metadata-driven architecture**—a concept that reshaped my view of how software could and should be built. Compiere is no longer maintained, but numerous projects have been forked from its repository and remain active.
 
 In Compiere:
 
@@ -38,7 +38,7 @@ This white paper presents a vision for **The Pareto Factory**: a hybrid developm
 I’ve been building software since the mid-1980s. Across that time, I've worked in a wide variety of organizations—each offering insights into what enables teams to succeed at scale:
 
 ### 1. United States Marine Corps
-I joined the Marines right out of high school. Though I didn’t fully appreciate it at the time, the Corps remains the most well-run organization I’ve ever belonged to. Precision, discipline, and mission clarity were non-negotiable. Everyone had a role, everyone was trained to execute it, and we succeeded through collective rigor.
+I joined the Marines right out of high school. Though I didn’t fully appreciate it at the time, the Corps remains the most well-run organization I’ve ever belonged to. Precision, discipline, and mission clarity were non-negotiable. Everyone has a role, everyone is trained to execute it, and the corps succees through collective rigor.
 
 ### 2. Federal Aviation Administration (FAA)
 As a certified Flight Instructor, I’ve worked closely within a system that takes a student from no experience to an Airline Transport Pilot through a meticulously structured, standards-based path. The FAA’s documentation and regulatory design are a gold standard in defining and enforcing process-driven success.
