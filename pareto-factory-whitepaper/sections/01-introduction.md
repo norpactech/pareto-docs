@@ -77,18 +77,20 @@ The **Pareto Factory** is not just a name. It is a model for achieving more with
 
 The **Pareto Factory** is a framework and set of tools designed to enable hybrid software development by combining metadata-driven design with code generation and automation. It is built on the principle that software development can be vastly accelerated when machines handle what they do best—repetition and structure—while humans focus on the parts that require insight and creativity.
 
+The Pareto Factory doesn't just generate code. It generates code in a manner that **embraces change**. In essence, some portions of the code for the application are reserved for automation while other portions are reserved for human interaction. This deliberate separation ensures that generated code can evolve and regenerate without destroying human-crafted business logic and customizations.
+
 At its core, the Pareto Factory does the following:
 
 1. **Stores metadata** that defines the structure and behavior of an application—such as modules for invoicing, customer management, or scheduling.
-2. **Generates code** for multiple layers of the software stack by interpreting that metadata. In its current implementation, the Pareto Factory produces:
+2. **Generates code** for multiple layers of the software stack by interpreting that metadata. In its envisioned implementation, the Pareto Factory would produce:
    - PostgreSQL stored procedures  
    - A Spring Boot REST API  
    - Angular models and services  
 
-   The system is also self-generating: **Pareto can generate Pareto code**.
+   The system would also be self-generating: **Pareto can generate Pareto code**.
 
-3. **Supports plugin-based generation**, meaning it is not limited to any specific language or framework. Developers can build plugins to produce code in any language or environment by leveraging the same metadata model.
-4. **Constructs dynamic projects** that allow teams to selectively include or exclude components, entities, and fields depending on the context and scope of the application being developed.
+3. **Supports plugin-based generation**, meaning it would not be limited to any specific language or framework. Developers could build plugins to produce code in any language or environment by leveraging the same metadata model.
+4. **Constructs dynamic projects** that would allow teams to selectively include or exclude components, entities, and fields depending on the context and scope of the application being developed.
 5. **Orchestrates the build process**, making it possible to integrate with deployment pipelines for full end-to-end automation.
 
 The Pareto Factory is designed for extensibility, composability, and repeatability—bringing industrial-style efficiency to modern software development while preserving the flexibility developers need for complex, real-world systems.
